@@ -16,13 +16,15 @@ pipeline {
     }
 
     environment {
+        AWS_PROFILE = "${AwsProfile}"
         AWS_DEFAULT_REGION = "${AwsRegion}"
         AWS_CA_BUNDLE = '/etc/pki/tls/certs/ca-bundle.crt'
         REQUESTS_CA_BUNDLE = '/etc/pki/tls/certs/ca-bundle.crt'
     }
 
     parameters {
-        string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
+        string(name: 'AwsProfile', defaultValue: 'wi', description: 'Amazon Credential Profile to use')
+        string(name: 'AwsRegion', defaultValue: 'eu-west-2', description: 'Amazon region to deploy resources into')
         string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
         string(name: 'GitCred', description: 'Jenkins-stored Git credential with which to execute git commands')
         string(name: 'GitProjUrl', description: 'SSH URL from which to download the Jenkins git project')
@@ -56,7 +58,7 @@ pipeline {
         string(name: 'FinalExpirationDays', defaultValue: '30', description: 'Number of days to retain objects before aging them out of the bucket')
         string(name: 'HaSubnets', description: 'Select three subnets - each from different Availability Zones')
         string(name: 'Hostname', defaultValue: 'sonarqube', description: 'Node-name for Sonarqubes hostname and DNS record')
-        string(name: 'InstanceType', defaultValue: 't2.large', description: 'Amazon EC2 instance type')
+        string(name: 'InstanceType', defaultValue: 't3.large', description: 'Amazon EC2 instance type')
         string(name: 'KeyPairName', description: 'Public/private key pairs allowing the provisioning-user to securely connect to the instance after it launches')
         string(name: 'LdapAuthType', defaultValue: 'simple', description: 'Authentication-type to use with directory-service')
         string(name: 'LdapBaseDnGroups', defaultValue: '', description: 'Directory-node to descend from when searching for group memberships')
@@ -349,9 +351,9 @@ pipeline {
                 ) {
                     sh '''#!/bin/bash
                         echo "Attempting to delete any active ${CfnStackRoot}-ParAuto stacks... "
-                        aws --region "${AwsRegion}" cloudformation delete-stack --stack-name "${CfnStackRoot}-ParAuto"
+                        aws --profile "${AwsProfile}" --region "${AwsRegion}" cloudformation delete-stack --stack-name "${CfnStackRoot}-ParAuto"
 
-                        aws cloudformation wait stack-delete-complete --stack-name ${CfnStackRoot}-ParAuto --region ${AwsRegion}
+                        aws --profile "${AwsProfile}" cloudformation wait stack-delete-complete --stack-name ${CfnStackRoot}-ParAuto --region ${AwsRegion}
                     '''
                 }
             }
@@ -365,12 +367,12 @@ pipeline {
                 ) {
                     sh '''#!/bin/bash
                         echo "Attempting to create stack ${CfnStackRoot}-ParAuto..."
-                        aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}-ParAuto" \
+                        aws --profile "${AwsProfile}" --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}-ParAuto" \
                           --disable-rollback --capabilities CAPABILITY_NAMED_IAM \
                           --template-url "${TemplateUrl}" \
                           --parameters file://sonar.parent.auto.parms.json
 
-                        aws cloudformation wait stack-create-complete --stack-name ${CfnStackRoot}-ParAuto --region ${AwsRegion}
+                        aws --profile "${AwsProfile}" cloudformation wait stack-create-complete --stack-name ${CfnStackRoot}-ParAuto --region ${AwsRegion}
                     '''
                 }
             }
